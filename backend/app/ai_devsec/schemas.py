@@ -8,6 +8,7 @@ class Finding(BaseModel):
     severity: Severity
     confidence: float = Field(ge=0.0, le=1.0)
     message: str
+    file: Optional[str] = None
     line: Optional[int] = None
     evidence: Optional[str] = None
     recommendation: Optional[str] = None
@@ -21,3 +22,7 @@ class ScanResponse(BaseModel):
     risk_score: int = Field(ge=0, le=100)
     findings: List[Finding]
     summary: str
+
+class DiffScanRequest(BaseModel):
+    diff: str = Field(min_length=1)
+
