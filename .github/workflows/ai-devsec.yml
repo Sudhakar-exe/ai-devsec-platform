@@ -28,8 +28,7 @@ jobs:
 
       - name: Generate PR diff
         run: |
-          git fetch origin ${{ github.base_ref }} --depth=1
-          git diff origin/${{ github.base_ref }}...HEAD > pr.diff
+          git diff ${{ github.event.pull_request.base.sha }} > pr.diff
 
       - name: Run AI DevSec scan (outputs SARIF)
         run: |
