@@ -2,12 +2,19 @@ from typing import List
 from .schemas import ScanRequest, ScanResponse, Finding
 from .detectors.secrets import SecretsDetector
 from .detectors.dangerous_exec import DangerousExecDetector
+from .detectors.hardcoded_creds import HardcodedCredsDetector
+from .detectors.insecure_http import InsecureHTTPDetector
+from .detectors.download_exec import DownloadExecDetector
+
 
 WEIGHTS = {"LOW": 10, "MEDIUM": 25, "HIGH": 45, "CRITICAL": 70}
 
 DETECTORS = [
     SecretsDetector(),
     DangerousExecDetector(),
+    HardcodedCredsDetector(),
+    InsecureHTTPDetector(),
+    DownloadExecDetector(),
 ]
 
 def compute_risk_score(findings: List[Finding]) -> int:
