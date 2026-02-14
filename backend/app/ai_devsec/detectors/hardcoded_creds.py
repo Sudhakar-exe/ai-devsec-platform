@@ -18,22 +18,41 @@ URL_CREDS = ("Credentials in URL", re.compile(r"://[^/\s:]+:[^/\s@]+@", re.IGNOR
 
 def mask_sensitive(text: str) -> str:
     """
-    Replace the detected secret value with ***.
-    This isn't perfect masking, but it prevents accidental leakage in logs/UI.
+    Mask secrets in common patterns so evidence doesn't leak credentials.
+    Uses named groups to avoid group-number bugs.
     """
-    # Mask quoted values in key=value patterns
-    text = re.sub(r"(\b(pass(word)?|passwd|secret|token|api[_-]?token|access[_-]?token)\b\s*[:=]\s*)(['\"]).+?(\3)",
-                  r"\1\3***\4",
-                  text,
-                  flags=re.IGNORECASE)
+    s = text.strip()
 
-    # Mask bearer tokens
-    text = re.sub(r"(\bauthorization\b\s*:\s*bearer\s+)[^\s]+", r"\1***", text, flags=re.IGNORECASE)
+    # Mask key/value with quotes: password="x", password = 'x', token:"x", secret='x'
+    # Example match groups:
+    #   key = 'password='
+    #   q   = '"'
+    #   val = 'admin123'
+    s = re.sub(
+        r'(?P<key>\b(?:pass(?:word)?|passwd|secret|token|api[_-]?token|access[_-]?token)\b\s*[:=]\s*)'
+        r'(?P<q>["\'])(?P<val>.*?)(?P=q)',
+        r'\g<key>\g<q>***\g<q>',
+        s,
+        flags=re.IGNORECASE
+    )
+
+    # Mask bearer tokens in headers
+    s = re.sub(
+        r'(?P<prefix>\bauthorization\b\s*:\s*bearer\s+)\S+',
+        r'\g<prefix>***',
+        s,
+        flags=re.IGNORECASE
+    )
 
     # Mask credentials in URL user:pass@
-    text = re.sub(r"://([^/\s:]+):([^/\s@]+)@", r"://***:***@", text, flags=re.IGNORECASE)
+    s = re.sub(
+        r'://[^/\s:]+:[^/\s@]+@',
+        r'://***:***@',
+        s,
+        flags=re.IGNORECASE
+    )
 
-    return text.strip()[:180] + ("…" if len(text.strip()) > 180 else "")
+    return s[:180] + ("…" if len(s) > 180 else "")
 
 class HardcodedCredsDetector(Detector):
     name = "hardcoded_creds"
