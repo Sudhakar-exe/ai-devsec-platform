@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI DevSec Scanner</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #ffffff;
+      --bg-secondary: #f5f5f4;
+      --bg-tertiary: #eeece8;
+      --text: #1a1a1a;
+      --text-secondary: #6b6b6b;
+      --text-tertiary: #a0a0a0;
+      --border: rgba(0,0,0,0.12);
+      --border-strong: rgba(0,0,0,0.25);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+
+      --danger-bg: #fcebeb;
+      --danger-text: #a32d2d;
+      --warning-bg: #faeeda;
+      --warning-text: #854f0b;
+      --info-bg: #e6f1fb;
+      --info-text: #185fa5;
+      --success-bg: #eaf3de;
+      --success-text: #3b6d11;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1b;
+        --bg-secondary: #242423;
+        --bg-tertiary: #2c2c2a;
+        --text: #f0eeea;
+        --text-secondary: #a0a09a;
+        --text-tertiary: #666662;
+        --border: rgba(255,255,255,0.1);
+        --border-strong: rgba(255,255,255,0.22);
+
+        --danger-bg: #501313;
+        --danger-text: #f09595;
+        --warning-bg: #412402;
+        --warning-text: #fac775;
+        --info-bg: #042c53;
+        --info-text: #85b7eb;
+        --success-bg: #173404;
+        --success-text: #97c459;
+      }
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-tertiary);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 2rem;
+    }
+    .header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .header-badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 100px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      border: 0.5px solid var(--border);
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--bg);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      border-bottom: 0.5px solid var(--border);
+      margin-bottom: 1.25rem;
+    }
+    .tab {
+      padding: 8px 18px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-secondary);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -0.5px;
+      font-family: var(--font-sans);
+      transition: color 0.15s;
+    }
+    .tab.active {
+      color: var(--text);
+      border-bottom-color: var(--text);
+      font-weight: 500;
+    }
+    .tab:hover:not(.active) { color: var(--text); }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Form elements ── */
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      padding: 12px 14px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.65;
+      background: var(--bg-secondary);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text);
+      resize: vertical;
+      transition: border-color 0.15s;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: var(--border-strong);
+    }
+    textarea::placeholder { color: var(--text-tertiary); }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 14px;
+      font-family: var(--font-sans);
+      background: var(--bg-secondary);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text);
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--border-strong);
+    }
+    input[type="text"]::placeholder { color: var(--text-tertiary); }
+
+    .form-footer {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .field-sm { flex: 0 0 200px; }
+    .spacer { flex: 1; }
+
+    .hint {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      flex: 1;
+      align-self: center;
+    }
+
+    /* ── Button ── */
+    .btn-scan {
+      padding: 9px 28px;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      background: var(--text);
+      color: var(--bg);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s;
+      flex-shrink: 0;
+    }
+    .btn-scan:hover { opacity: 0.82; }
+    .btn-scan:active { opacity: 0.7; transform: scale(0.98); }
+    .btn-scan:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ── Status bar ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 28px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      padding: 0 2px;
+    }
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--text-secondary);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Error ── */
+    .error-msg {
+      background: var(--danger-bg);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--danger-text);
+      margin-bottom: 1rem;
+    }
+
+    /* ── Score card ── */
+    .score-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1.5rem;
+      align-items: center;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      border: 0.5px solid var(--border);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .score-num {
+      font-size: 56px;
+      font-weight: 600;
+      line-height: 1;
+      font-family: var(--font-mono);
+      letter-spacing: -0.03em;
+    }
+    .s-safe  { color: var(--success-text); }
+    .s-low   { color: var(--info-text); }
+    .s-med   { color: var(--warning-text); }
+    .s-high  { color: var(--danger-text); }
+
+    .score-label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .bar-track {
+      height: 5px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
+    }
+    .bar-fill.s-safe  { background: var(--success-text); }
+    .bar-fill.s-low   { background: var(--info-text); }
+    .bar-fill.s-med   { background: var(--warning-text); }
+    .bar-fill.s-high  { background: var(--danger-text); }
+
+    .score-verdict { font-size: 14px; color: var(--text); font-weight: 500; margin-bottom: 8px; }
+    .pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .pill {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+    .pill-crit { background: var(--danger-bg);  color: var(--danger-text); }
+    .pill-high { background: var(--warning-bg); color: var(--warning-text); }
+    .pill-med  { background: var(--info-bg);    color: var(--info-text); }
+    .pill-low  { background: var(--success-bg); color: var(--success-text); }
+
+    /* ── Findings ── */
+    .findings-label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      margin: 1.25rem 0 0.75rem;
+    }
+
+    .finding {
+      background: var(--bg);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.25rem;
+      margin-bottom: 8px;
+    }
+    .finding-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .sev {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: var(--radius-md);
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .sev-CRITICAL { background: var(--danger-bg);  color: var(--danger-text); }
+    .sev-HIGH     { background: var(--warning-bg); color: var(--warning-text); }
+    .sev-MEDIUM   { background: var(--info-bg);    color: var(--info-text); }
+    .sev-LOW      { background: var(--success-bg); color: var(--success-text); }
+
+    .finding-msg {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.4;
+    }
+    .finding-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+    .meta-k { color: var(--text-tertiary); }
+    .evidence {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--bg-secondary);
+      border-left: 2px solid var(--border-strong);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      padding: 8px 12px;
+      color: var(--text);
+      margin-bottom: 10px;
+      word-break: break-all;
+    }
+    .rec {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      padding-top: 10px;
+      border-top: 0.5px solid var(--border);
+    }
+
+    /* ── Clean state ── */
+    .clean-state {
+      background: var(--success-bg);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      text-align: center;
+    }
+    .clean-state p { font-size: 15px; font-weight: 500; color: var(--success-text); }
+    .clean-state small { font-size: 13px; color: var(--success-text); opacity: 0.75; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <h1>AI DevSec Scanner</h1>
+      <span class="header-badge">localhost:8000</span>
+    </div>
+
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('code')">Code scan</button>
+        <button class="tab" onclick="switchTab('diff')">Diff scan</button>
+      </div>
+
+      <!-- Code scan panel -->
+      <div id="panel-code" class="panel active">
+        <label for="code-input">Code</label>
+        <textarea id="code-input" placeholder="Paste your code here…" spellcheck="false"></textarea>
+        <div class="form-footer">
+          <div class="field-sm">
+            <label for="filename-input">Filename (optional)</label>
+            <input type="text" id="filename-input" placeholder="e.g. app.py" />
+          </div>
+          <span class="hint">Cmd/Ctrl + Enter to scan</span>
+          <button class="btn-scan" onclick="runScan()">Scan code</button>
+        </div>
+      </div>
+
+      <!-- Diff scan panel -->
+      <div id="panel-diff" class="panel">
+        <label for="diff-input">Git diff</label>
+        <textarea id="diff-input" placeholder="Paste the output of git diff here…" spellcheck="false"></textarea>
+        <div class="form-footer">
+          <span class="hint">Cmd/Ctrl + Enter to scan</span>
+          <button class="btn-scan" onclick="runDiffScan()">Scan diff</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-bar" id="status-bar"></div>
+    <div id="error-box"></div>
+    <div id="results"></div>
+
+  </div>
+
+  <script>
+    const API = 'http://localhost:8000';
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach((t, i) =>
+        t.classList.toggle('active', (tab === 'code' ? 0 : 1) === i));
+      document.getElementById('panel-code').classList.toggle('active', tab === 'code');
+      document.getElementById('panel-diff').classList.toggle('active', tab === 'diff');
+      clearResults();
+    }
+
+    function clearResults() {
+      document.getElementById('results').innerHTML = '';
+      document.getElementById('status-bar').innerHTML = '';
+      document.getElementById('error-box').innerHTML = '';
+    }
+
+    function setStatus(msg, loading) {
+      document.getElementById('status-bar').innerHTML = loading
+        ? `<div class="spinner"></div><span>${msg}</span>`
+        : `<span>${msg}</span>`;
+    }
+
+    function showError(msg) {
+      document.getElementById('error-box').innerHTML =
+        `<div class="error-msg">${esc(msg)}</div>`;
+    }
+
+    function esc(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function scoreClass(n) {
+      if (n === 0)   return 's-safe';
+      if (n <= 30)   return 's-low';
+      if (n <= 65)   return 's-med';
+      return 's-high';
+    }
+
+    function scoreVerdict(n) {
+      if (n === 0)   return 'No issues detected';
+      if (n <= 30)   return 'Low risk';
+      if (n <= 65)   return 'Medium risk';
+      if (n <= 85)   return 'High risk';
+      return 'Critical risk';
+    }
+
+    function renderResults(data) {
+      const findings = data.findings || [];
+      const score    = data.risk_score;
+      const cls      = scoreClass(score);
+      const counts   = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+      findings.forEach(f => { if (f.severity in counts) counts[f.severity]++; });
+
+      let pillsHtml = '';
+      if (counts.CRITICAL) pillsHtml += `<span class="pill pill-crit">${counts.CRITICAL} critical</span>`;
+      if (counts.HIGH)     pillsHtml += `<span class="pill pill-high">${counts.HIGH} high</span>`;
+      if (counts.MEDIUM)   pillsHtml += `<span class="pill pill-med">${counts.MEDIUM} medium</span>`;
+      if (counts.LOW)      pillsHtml += `<span class="pill pill-low">${counts.LOW} low</span>`;
+
+      let findingsHtml = '';
+      if (findings.length === 0) {
+        findingsHtml = `
+          <div class="clean-state">
+            <p>No vulnerabilities detected</p>
+            <small>This code looks clean against all active detectors.</small>
+          </div>`;
+      } else {
+        findingsHtml += `<div class="findings-label">${findings.length} finding${findings.length !== 1 ? 's' : ''}</div>`;
+        findings.forEach(f => {
+          const loc = [f.file, f.line ? `line ${f.line}` : ''].filter(Boolean).join(' · ');
+          const conf = Math.round(f.confidence * 100);
+          findingsHtml += `
+            <div class="finding">
+              <div class="finding-top">
+                <span class="sev sev-${f.severity}">${f.severity}</span>
+                <span class="finding-msg">${esc(f.message)}</span>
+              </div>
+              <div class="finding-meta">
+                <span><span class="meta-k">detector </span>${esc(f.detector)}</span>
+                ${loc ? `<span><span class="meta-k">location </span>${esc(loc)}</span>` : ''}
+                <span><span class="meta-k">confidence </span>${conf}%</span>
+              </div>
+              ${f.evidence    ? `<div class="evidence">${esc(f.evidence)}</div>` : ''}
+              ${f.recommendation ? `<div class="rec">${esc(f.recommendation)}</div>` : ''}
+            </div>`;
+        });
+      }
+
+      document.getElementById('results').innerHTML = `
+        <div class="score-card">
+          <div class="score-num ${cls}">${score}</div>
+          <div>
+            <div class="score-label">Risk score / 100</div>
+            <div class="bar-track">
+              <div class="bar-fill ${cls}" style="width: ${score}%"></div>
+            </div>
+            <div class="score-verdict">${scoreVerdict(score)}</div>
+            <div class="pills">
+              ${pillsHtml || `<span style="font-size:13px;color:var(--success-text)">All clear</span>`}
+            </div>
+          </div>
+        </div>
+        ${findingsHtml}`;
+    }
+
+    async function runScan() {
+      const code     = document.getElementById('code-input').value;
+      const filename = document.getElementById('filename-input').value.trim();
+      if (!code.trim()) { showError('Please paste some code before scanning.'); return; }
+      clearResults();
+      setStatus('Scanning…', true);
+      setBtns(true);
+      try {
+        const url = filename
+          ? `${API}/api/ai-devsec/scan?filename=${encodeURIComponent(filename)}`
+          : `${API}/api/ai-devsec/scan`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: code
+        });
+        if (!res.ok) throw new Error(`API error ${res.status}: ${await res.text()}`);
+        const data = await res.json();
+        setStatus(`Scan complete · ${data.findings.length} finding${data.findings.length !== 1 ? 's' : ''} · ${new Date().toLocaleTimeString()}`, false);
+        renderResults(data);
+      } catch (e) {
+        setStatus('', false);
+        showError(e.message.includes('fetch')
+          ? 'Could not reach the API. Make sure the server is running on localhost:8000.'
+          : e.message);
+      } finally { setBtns(false); }
+    }
+
+    async function runDiffScan() {
+      const diff = document.getElementById('diff-input').value;
+      if (!diff.trim()) { showError('Please paste a git diff before scanning.'); return; }
+      clearResults();
+      setStatus('Scanning diff…', true);
+      setBtns(true);
+      try {
+        const res = await fetch(`${API}/api/ai-devsec/scan-diff`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: diff
+        });
+        if (!res.ok) throw new Error(`API error ${res.status}: ${await res.text()}`);
+        const data = await res.json();
+        setStatus(`Diff scan complete · ${data.findings.length} finding${data.findings.length !== 1 ? 's' : ''} · ${new Date().toLocaleTimeString()}`, false);
+        renderResults(data);
+      } catch (e) {
+        setStatus('', false);
+        showError(e.message.includes('fetch')
+          ? 'Could not reach the API. Make sure the server is running on localhost:8000.'
+          : e.message);
+      } finally { setBtns(false); }
+    }
+
+    function setBtns(disabled) {
+      document.querySelectorAll('.btn-scan').forEach(b => b.disabled = disabled);
+    }
+
+    document.getElementById('code-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) runScan();
+    });
+    document.getElementById('diff-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) runDiffScan();
+    });
+  </script>
+</body>
+</html>

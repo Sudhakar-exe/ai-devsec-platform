@@ -5,6 +5,13 @@ from ..schemas import Finding
 
 HTTP_PATTERN = re.compile(r"http://", re.IGNORECASE)
 
+# These are safe local addresses — flagging them would be a false positive
+_SAFE_HOSTS = re.compile(
+    r"http://(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)(:\d+)?(/|$|\s|['\"])",
+    re.IGNORECASE,
+)
+
+
 class InsecureHTTPDetector(Detector):
     name = "insecure_http"
 
@@ -12,7 +19,7 @@ class InsecureHTTPDetector(Detector):
         findings: List[Finding] = []
 
         for lineno, line in enumerate(code.splitlines(), start=1):
-            if HTTP_PATTERN.search(line):
+            if HTTP_PATTERN.search(line) and not _SAFE_HOSTS.search(line):
                 findings.append(
                     Finding(
                         detector=self.name,
@@ -21,7 +28,7 @@ class InsecureHTTPDetector(Detector):
                         message="Insecure HTTP connection detected (use HTTPS).",
                         line=lineno,
                         evidence=line.strip(),
-                        recommendation="Use HTTPS instead of HTTP to ensure encrypted communication."
+                        recommendation="Use HTTPS instead of HTTP to ensure encrypted communication.",
                     )
                 )
 
