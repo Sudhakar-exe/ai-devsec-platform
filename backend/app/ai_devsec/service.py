@@ -5,6 +5,11 @@ from .detectors.dangerous_exec import DangerousExecDetector
 from .detectors.hardcoded_creds import HardcodedCredsDetector
 from .detectors.insecure_http import InsecureHTTPDetector
 from .detectors.download_exec import DownloadExecDetector
+from .detectors.sql_injection import SQLInjectionDetector
+from .detectors.insecure_deserialization import InsecureDeserializationDetector
+from .detectors.path_traversal import PathTraversalDetector
+from .detectors.weak_cryptography import WeakCryptographyDetector
+from .detectors.debug_misconfig import DebugMisconfigDetector
 
 
 WEIGHTS = {"LOW": 10, "MEDIUM": 25, "HIGH": 45, "CRITICAL": 70}
@@ -15,6 +20,11 @@ DETECTORS = [
     HardcodedCredsDetector(),
     InsecureHTTPDetector(),
     DownloadExecDetector(),
+    SQLInjectionDetector(),
+    InsecureDeserializationDetector(),
+    PathTraversalDetector(),
+    WeakCryptographyDetector(),
+    DebugMisconfigDetector(),
 ]
 
 def compute_risk_score(findings: List[Finding]) -> int:
