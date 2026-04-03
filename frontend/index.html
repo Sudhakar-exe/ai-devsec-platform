@@ -1,605 +1,1125 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI DevSec Scanner</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #ffffff;
-      --bg-secondary: #f5f5f4;
-      --bg-tertiary: #eeece8;
-      --text: #1a1a1a;
-      --text-secondary: #6b6b6b;
-      --text-tertiary: #a0a0a0;
-      --border: rgba(0,0,0,0.12);
-      --border-strong: rgba(0,0,0,0.25);
-      --radius-md: 8px;
-      --radius-lg: 12px;
-      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
-
-      --danger-bg: #fcebeb;
-      --danger-text: #a32d2d;
-      --warning-bg: #faeeda;
-      --warning-text: #854f0b;
-      --info-bg: #e6f1fb;
-      --info-text: #185fa5;
-      --success-bg: #eaf3de;
-      --success-text: #3b6d11;
-    }
-
-    @media (prefers-color-scheme: dark) {
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI DevSec Scanner</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
       :root {
-        --bg: #1c1c1b;
-        --bg-secondary: #242423;
-        --bg-tertiary: #2c2c2a;
-        --text: #f0eeea;
-        --text-secondary: #a0a09a;
-        --text-tertiary: #666662;
-        --border: rgba(255,255,255,0.1);
-        --border-strong: rgba(255,255,255,0.22);
-
-        --danger-bg: #501313;
-        --danger-text: #f09595;
-        --warning-bg: #412402;
-        --warning-text: #fac775;
-        --info-bg: #042c53;
-        --info-text: #85b7eb;
-        --success-bg: #173404;
-        --success-text: #97c459;
+        --bg: #ffffff;
+        --bg-2: #f5f5f4;
+        --bg-3: #eeece8;
+        --text: #1a1a1a;
+        --text-2: #6b6b6b;
+        --text-3: #a0a0a0;
+        --border: rgba(0, 0, 0, 0.12);
+        --border-2: rgba(0, 0, 0, 0.22);
+        --r-md: 8px;
+        --r-lg: 12px;
+        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --mono: "JetBrains Mono", "Fira Code", monospace;
+        --danger-bg: #fcebeb;
+        --danger: #a32d2d;
+        --warn-bg: #faeeda;
+        --warn: #854f0b;
+        --info-bg: #e6f1fb;
+        --info: #185fa5;
+        --ok-bg: #eaf3de;
+        --ok: #3b6d11;
+        --gem-bg: #f3f0ff;
+        --gem: #4c35b8;
       }
-    }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #1c1c1b;
+          --bg-2: #242423;
+          --bg-3: #2c2c2a;
+          --text: #f0eeea;
+          --text-2: #a0a09a;
+          --text-3: #666662;
+          --border: rgba(255, 255, 255, 0.1);
+          --border-2: rgba(255, 255, 255, 0.22);
+          --danger-bg: #501313;
+          --danger: #f09595;
+          --warn-bg: #412402;
+          --warn: #fac775;
+          --info-bg: #042c53;
+          --info: #85b7eb;
+          --ok-bg: #173404;
+          --ok: #97c459;
+          --gem-bg: #1a1535;
+          --gem: #a99cf5;
+        }
+      }
+      body {
+        font-family: var(--sans);
+        background: var(--bg-3);
+        color: var(--text);
+        min-height: 100vh;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr;
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 1.5rem 1rem;
+        gap: 1rem;
+      }
+      @media (min-width: 900px) {
+        .layout {
+          grid-template-columns: 1fr 420px;
+          align-items: start;
+        }
+      }
+      .card {
+        background: var(--bg);
+        border: 0.5px solid var(--border);
+        border-radius: var(--r-lg);
+        padding: 1.25rem 1.5rem;
+      }
+      .header {
+        margin-bottom: 1.25rem;
+      }
+      .header h1 {
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .header p {
+        font-size: 14px;
+        color: var(--text-2);
+        margin-top: 3px;
+      }
+      .tabs {
+        display: flex;
+        border-bottom: 0.5px solid var(--border);
+        margin-bottom: 1.25rem;
+      }
+      .tab {
+        padding: 8px 18px;
+        font-size: 14px;
+        cursor: pointer;
+        border: none;
+        background: none;
+        color: var(--text-2);
+        border-bottom: 2px solid transparent;
+        margin-bottom: -0.5px;
+        font-family: var(--sans);
+        transition: color 0.15s;
+      }
+      .tab.on {
+        color: var(--text);
+        border-bottom-color: var(--text);
+        font-weight: 500;
+      }
+      label {
+        display: block;
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-2);
+        margin-bottom: 6px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 200px;
+        padding: 12px 14px;
+        font-family: var(--mono);
+        font-size: 13px;
+        line-height: 1.65;
+        background: var(--bg-2);
+        border: 0.5px solid var(--border);
+        border-radius: var(--r-md);
+        color: var(--text);
+        resize: vertical;
+      }
+      textarea:focus {
+        outline: none;
+        border-color: var(--border-2);
+      }
+      textarea::placeholder {
+        color: var(--text-3);
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 8px 12px;
+        font-size: 14px;
+        font-family: var(--sans);
+        background: var(--bg-2);
+        border: 0.5px solid var(--border);
+        border-radius: var(--r-md);
+        color: var(--text);
+      }
+      input[type="text"]:focus {
+        outline: none;
+        border-color: var(--border-2);
+      }
+      .row {
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--text-3);
+        flex: 1;
+        align-self: center;
+      }
+      .btn {
+        padding: 9px 24px;
+        font-size: 14px;
+        font-weight: 500;
+        font-family: var(--sans);
+        border: none;
+        border-radius: var(--r-md);
+        cursor: pointer;
+        transition: opacity 0.15s;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .btn-scan {
+        background: var(--text);
+        color: var(--bg);
+      }
+      .btn-scan:hover {
+        opacity: 0.82;
+      }
+      .btn-scan:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 28px;
+        font-size: 13px;
+        color: var(--text-2);
+        padding: 0 2px;
+      }
+      .spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid var(--border);
+        border-top-color: var(--text-2);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        flex-shrink: 0;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .err {
+        background: var(--danger-bg);
+        border-radius: var(--r-md);
+        padding: 10px 14px;
+        font-size: 13px;
+        color: var(--danger);
+        margin-bottom: 0.75rem;
+      }
+      .score-card {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 1.25rem;
+        align-items: center;
+        background: var(--bg-2);
+        border-radius: var(--r-lg);
+        border: 0.5px solid var(--border);
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+      }
+      .score-num {
+        font-size: 52px;
+        font-weight: 600;
+        line-height: 1;
+        font-family: var(--mono);
+        letter-spacing: -0.03em;
+      }
+      .s-safe {
+        color: var(--ok);
+      }
+      .s-low {
+        color: var(--info);
+      }
+      .s-med {
+        color: var(--warn);
+      }
+      .s-high {
+        color: var(--danger);
+      }
+      .score-lbl {
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-2);
+        margin-bottom: 8px;
+      }
+      .bar-t {
+        height: 5px;
+        background: var(--border);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 8px;
+      }
+      .bar-f {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .bar-safe {
+        background: var(--ok);
+      }
+      .bar-low {
+        background: var(--info);
+      }
+      .bar-med {
+        background: var(--warn);
+      }
+      .bar-high {
+        background: var(--danger);
+      }
+      .verdict {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text);
+        margin-bottom: 8px;
+      }
+      .pills {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .pill {
+        font-size: 11px;
+        font-weight: 500;
+        padding: 3px 10px;
+        border-radius: 100px;
+      }
+      .p-crit {
+        background: var(--danger-bg);
+        color: var(--danger);
+      }
+      .p-high {
+        background: var(--warn-bg);
+        color: var(--warn);
+      }
+      .p-med {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .p-low {
+        background: var(--ok-bg);
+        color: var(--ok);
+      }
+      .findings-lbl {
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-2);
+        margin: 1.25rem 0 0.75rem;
+      }
+      .finding {
+        background: var(--bg);
+        border: 0.5px solid var(--border);
+        border-radius: var(--r-lg);
+        padding: 1rem 1.25rem;
+        margin-bottom: 8px;
+      }
+      .finding-top {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .sev {
+        font-size: 11px;
+        font-weight: 500;
+        padding: 3px 8px;
+        border-radius: var(--r-md);
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .sev-CRITICAL {
+        background: var(--danger-bg);
+        color: var(--danger);
+      }
+      .sev-HIGH {
+        background: var(--warn-bg);
+        color: var(--warn);
+      }
+      .sev-MEDIUM {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .sev-LOW {
+        background: var(--ok-bg);
+        color: var(--ok);
+      }
+      .finding-msg {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text);
+        line-height: 1.4;
+      }
+      .finding-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        font-size: 12px;
+        color: var(--text-2);
+        margin-bottom: 10px;
+      }
+      .mk {
+        color: var(--text-3);
+      }
+      .evidence {
+        font-family: var(--mono);
+        font-size: 12px;
+        background: var(--bg-2);
+        border-left: 2px solid var(--border-2);
+        border-radius: 0 var(--r-md) var(--r-md) 0;
+        padding: 8px 12px;
+        color: var(--text);
+        margin-bottom: 10px;
+        word-break: break-all;
+      }
+      .rec {
+        font-size: 13px;
+        color: var(--text-2);
+        line-height: 1.6;
+        padding-top: 10px;
+        border-top: 0.5px solid var(--border);
+      }
+      .clean {
+        background: var(--ok-bg);
+        border-radius: var(--r-lg);
+        padding: 2rem;
+        text-align: center;
+      }
+      .clean p {
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--ok);
+      }
+      .chat-panel {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 3rem);
+        min-height: 500px;
+        background: var(--bg);
+        border: 0.5px solid var(--border);
+        border-radius: var(--r-lg);
+        overflow: hidden;
+      }
+      .chat-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 0.5px solid var(--border);
+        flex-shrink: 0;
+      }
+      .chat-title {
+        font-size: 15px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .chat-badge {
+        font-size: 10px;
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 100px;
+        background: var(--gem-bg);
+        color: var(--gem);
+      }
+      .chat-sub {
+        font-size: 12px;
+        color: var(--text-3);
+        margin-top: 3px;
+      }
+      .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .msg {
+        max-width: 90%;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .msg-user {
+        align-self: flex-end;
+      }
+      .msg-model {
+        align-self: flex-start;
+      }
+      .msg-bubble {
+        padding: 10px 14px;
+        border-radius: 14px;
+        font-size: 14px;
+        line-height: 1.55;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .msg-user .msg-bubble {
+        background: var(--text);
+        color: var(--bg);
+        border-bottom-right-radius: 4px;
+      }
+      .msg-model .msg-bubble {
+        background: var(--bg-2);
+        color: var(--text);
+        border-bottom-left-radius: 4px;
+        border: 0.5px solid var(--border);
+      }
+      .msg-model .msg-bubble code {
+        font-family: var(--mono);
+        font-size: 12px;
+        background: var(--bg-3);
+        padding: 1px 5px;
+        border-radius: 4px;
+      }
+      .msg-model .msg-bubble pre {
+        font-family: var(--mono);
+        font-size: 12px;
+        background: var(--bg-3);
+        padding: 10px 12px;
+        border-radius: var(--r-md);
+        margin: 8px 0;
+        overflow-x: auto;
+        white-space: pre;
+        border: 0.5px solid var(--border);
+      }
+      .msg-time {
+        font-size: 11px;
+        color: var(--text-3);
+        padding: 0 4px;
+      }
+      .msg-user .msg-time {
+        text-align: right;
+      }
+      .chat-typing {
+        align-self: flex-start;
+        padding: 10px 14px;
+        background: var(--bg-2);
+        border-radius: 14px;
+        border-bottom-left-radius: 4px;
+        border: 0.5px solid var(--border);
+        display: none;
+      }
+      .typing-dots {
+        display: flex;
+        gap: 4px;
+      }
+      .typing-dots span {
+        width: 7px;
+        height: 7px;
+        background: var(--text-3);
+        border-radius: 50%;
+        animation: bounce 0.9s ease-in-out infinite;
+      }
+      .typing-dots span:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+      .typing-dots span:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+      @keyframes bounce {
+        0%,
+        60%,
+        100% {
+          transform: translateY(0);
+        }
+        30% {
+          transform: translateY(-6px);
+        }
+      }
+      .chat-footer {
+        padding: 0.75rem 1rem;
+        border-top: 0.5px solid var(--border);
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+        flex-shrink: 0;
+      }
+      .chat-input {
+        flex: 1;
+        font-family: var(--sans);
+        font-size: 14px;
+        padding: 9px 12px;
+        background: var(--bg-2);
+        border: 0.5px solid var(--border);
+        border-radius: var(--r-md);
+        color: var(--text);
+        resize: none;
+        min-height: 42px;
+        max-height: 120px;
+        line-height: 1.5;
+        overflow-y: auto;
+      }
+      .chat-input:focus {
+        outline: none;
+        border-color: var(--border-2);
+      }
+      .chat-input::placeholder {
+        color: var(--text-3);
+      }
+      .chat-send {
+        width: 38px;
+        height: 38px;
+        background: var(--gem);
+        color: white;
+        border: none;
+        border-radius: var(--r-md);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: opacity 0.15s;
+      }
+      .chat-send:hover {
+        opacity: 0.85;
+      }
+      .chat-send:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      .chat-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        text-align: center;
+        padding: 2rem;
+        color: var(--text-3);
+        gap: 12px;
+      }
+      .chat-empty-icon {
+        width: 48px;
+        height: 48px;
+        background: var(--gem-bg);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .chat-empty p {
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .quick-btn {
+        font-size: 12px;
+        padding: 7px 12px;
+        border: 0.5px solid var(--border);
+        border-radius: var(--r-md);
+        background: none;
+        color: var(--text-2);
+        cursor: pointer;
+        text-align: left;
+        font-family: var(--sans);
+        transition: background 0.15s;
+        display: block;
+        width: 100%;
+        margin-bottom: 6px;
+      }
+      .quick-btn:hover {
+        background: var(--bg-2);
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <div>
+        <div class="header">
+          <h1>AI DevSec Scanner</h1>
+          <p>
+            Paste code to scan for vulnerabilities, then chat with Gemini AI
+            about the results
+          </p>
+        </div>
+        <div class="card">
+          <div class="tabs">
+            <button class="tab on" onclick="switchTab('code')">
+              Code scan
+            </button>
+            <button class="tab" onclick="switchTab('diff')">Diff scan</button>
+          </div>
+          <div id="pcode">
+            <label for="code-input">Code</label>
+            <textarea
+              id="code-input"
+              placeholder="Paste your code here…"
+              spellcheck="false"
+            ></textarea>
+            <div class="row">
+              <div style="flex: 0 0 200px">
+                <label for="fn-input" style="margin-bottom: 6px"
+                  >Filename (optional)</label
+                >
+                <input type="text" id="fn-input" placeholder="e.g. app.py" />
+              </div>
+              <span class="hint">Cmd/Ctrl + Enter to scan</span>
+              <button class="btn btn-scan" onclick="runScan()">
+                Scan code
+              </button>
+            </div>
+          </div>
+          <div id="pdiff" style="display: none">
+            <label for="diff-input">Git diff</label>
+            <textarea
+              id="diff-input"
+              placeholder="Paste the output of git diff here…"
+              spellcheck="false"
+            ></textarea>
+            <div class="row">
+              <span class="hint">Cmd/Ctrl + Enter to scan</span>
+              <button class="btn btn-scan" onclick="runDiffScan()">
+                Scan diff
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="status" id="status"></div>
+        <div id="err-box"></div>
+        <div id="results"></div>
+      </div>
 
-    body {
-      font-family: var(--font-sans);
-      background: var(--bg-tertiary);
-      color: var(--text);
-      min-height: 100vh;
-      padding: 2rem 1rem;
-    }
-
-    .container {
-      max-width: 820px;
-      margin: 0 auto;
-    }
-
-    /* ── Header ── */
-    .header {
-      display: flex;
-      align-items: baseline;
-      gap: 12px;
-      margin-bottom: 2rem;
-    }
-    .header h1 {
-      font-size: 22px;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-    }
-    .header-badge {
-      font-size: 11px;
-      font-weight: 500;
-      padding: 3px 8px;
-      border-radius: 100px;
-      background: var(--bg-secondary);
-      color: var(--text-secondary);
-      border: 0.5px solid var(--border);
-    }
-
-    /* ── Card ── */
-    .card {
-      background: var(--bg);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 1.5rem;
-      margin-bottom: 1rem;
-    }
-
-    /* ── Tabs ── */
-    .tabs {
-      display: flex;
-      border-bottom: 0.5px solid var(--border);
-      margin-bottom: 1.25rem;
-    }
-    .tab {
-      padding: 8px 18px;
-      font-size: 14px;
-      cursor: pointer;
-      border: none;
-      background: none;
-      color: var(--text-secondary);
-      border-bottom: 2px solid transparent;
-      margin-bottom: -0.5px;
-      font-family: var(--font-sans);
-      transition: color 0.15s;
-    }
-    .tab.active {
-      color: var(--text);
-      border-bottom-color: var(--text);
-      font-weight: 500;
-    }
-    .tab:hover:not(.active) { color: var(--text); }
-
-    .panel { display: none; }
-    .panel.active { display: block; }
-
-    /* ── Form elements ── */
-    label {
-      display: block;
-      font-size: 11px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-secondary);
-      margin-bottom: 6px;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 220px;
-      padding: 12px 14px;
-      font-family: var(--font-mono);
-      font-size: 13px;
-      line-height: 1.65;
-      background: var(--bg-secondary);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius-md);
-      color: var(--text);
-      resize: vertical;
-      transition: border-color 0.15s;
-    }
-    textarea:focus {
-      outline: none;
-      border-color: var(--border-strong);
-    }
-    textarea::placeholder { color: var(--text-tertiary); }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 8px 12px;
-      font-size: 14px;
-      font-family: var(--font-sans);
-      background: var(--bg-secondary);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius-md);
-      color: var(--text);
-      transition: border-color 0.15s;
-    }
-    input[type="text"]:focus {
-      outline: none;
-      border-color: var(--border-strong);
-    }
-    input[type="text"]::placeholder { color: var(--text-tertiary); }
-
-    .form-footer {
-      display: flex;
-      align-items: flex-end;
-      gap: 12px;
-      margin-top: 12px;
-    }
-    .field-sm { flex: 0 0 200px; }
-    .spacer { flex: 1; }
-
-    .hint {
-      font-size: 12px;
-      color: var(--text-tertiary);
-      flex: 1;
-      align-self: center;
-    }
-
-    /* ── Button ── */
-    .btn-scan {
-      padding: 9px 28px;
-      font-size: 14px;
-      font-weight: 500;
-      font-family: var(--font-sans);
-      background: var(--text);
-      color: var(--bg);
-      border: none;
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      white-space: nowrap;
-      transition: opacity 0.15s;
-      flex-shrink: 0;
-    }
-    .btn-scan:hover { opacity: 0.82; }
-    .btn-scan:active { opacity: 0.7; transform: scale(0.98); }
-    .btn-scan:disabled { opacity: 0.35; cursor: not-allowed; }
-
-    /* ── Status bar ── */
-    .status-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 28px;
-      font-size: 13px;
-      color: var(--text-secondary);
-      padding: 0 2px;
-    }
-    .spinner {
-      width: 14px;
-      height: 14px;
-      border: 2px solid var(--border);
-      border-top-color: var(--text-secondary);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      flex-shrink: 0;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── Error ── */
-    .error-msg {
-      background: var(--danger-bg);
-      border-radius: var(--radius-md);
-      padding: 10px 14px;
-      font-size: 13px;
-      color: var(--danger-text);
-      margin-bottom: 1rem;
-    }
-
-    /* ── Score card ── */
-    .score-card {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 1.5rem;
-      align-items: center;
-      background: var(--bg-secondary);
-      border-radius: var(--radius-lg);
-      border: 0.5px solid var(--border);
-      padding: 1.25rem 1.5rem;
-      margin-bottom: 1rem;
-    }
-    .score-num {
-      font-size: 56px;
-      font-weight: 600;
-      line-height: 1;
-      font-family: var(--font-mono);
-      letter-spacing: -0.03em;
-    }
-    .s-safe  { color: var(--success-text); }
-    .s-low   { color: var(--info-text); }
-    .s-med   { color: var(--warning-text); }
-    .s-high  { color: var(--danger-text); }
-
-    .score-label {
-      font-size: 11px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-secondary);
-      margin-bottom: 8px;
-    }
-    .bar-track {
-      height: 5px;
-      background: var(--border);
-      border-radius: 3px;
-      overflow: hidden;
-      margin-bottom: 8px;
-    }
-    .bar-fill {
-      height: 100%;
-      border-radius: 3px;
-      transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
-    }
-    .bar-fill.s-safe  { background: var(--success-text); }
-    .bar-fill.s-low   { background: var(--info-text); }
-    .bar-fill.s-med   { background: var(--warning-text); }
-    .bar-fill.s-high  { background: var(--danger-text); }
-
-    .score-verdict { font-size: 14px; color: var(--text); font-weight: 500; margin-bottom: 8px; }
-    .pills { display: flex; gap: 6px; flex-wrap: wrap; }
-    .pill {
-      font-size: 11px;
-      font-weight: 500;
-      padding: 3px 10px;
-      border-radius: 100px;
-    }
-    .pill-crit { background: var(--danger-bg);  color: var(--danger-text); }
-    .pill-high { background: var(--warning-bg); color: var(--warning-text); }
-    .pill-med  { background: var(--info-bg);    color: var(--info-text); }
-    .pill-low  { background: var(--success-bg); color: var(--success-text); }
-
-    /* ── Findings ── */
-    .findings-label {
-      font-size: 11px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-secondary);
-      margin: 1.25rem 0 0.75rem;
-    }
-
-    .finding {
-      background: var(--bg);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 1rem 1.25rem;
-      margin-bottom: 8px;
-    }
-    .finding-top {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    .sev {
-      font-size: 11px;
-      font-weight: 500;
-      padding: 3px 8px;
-      border-radius: var(--radius-md);
-      white-space: nowrap;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-    .sev-CRITICAL { background: var(--danger-bg);  color: var(--danger-text); }
-    .sev-HIGH     { background: var(--warning-bg); color: var(--warning-text); }
-    .sev-MEDIUM   { background: var(--info-bg);    color: var(--info-text); }
-    .sev-LOW      { background: var(--success-bg); color: var(--success-text); }
-
-    .finding-msg {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text);
-      line-height: 1.4;
-    }
-    .finding-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-      font-size: 12px;
-      color: var(--text-secondary);
-      margin-bottom: 10px;
-    }
-    .meta-k { color: var(--text-tertiary); }
-    .evidence {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      background: var(--bg-secondary);
-      border-left: 2px solid var(--border-strong);
-      border-radius: 0 var(--radius-md) var(--radius-md) 0;
-      padding: 8px 12px;
-      color: var(--text);
-      margin-bottom: 10px;
-      word-break: break-all;
-    }
-    .rec {
-      font-size: 13px;
-      color: var(--text-secondary);
-      line-height: 1.6;
-      padding-top: 10px;
-      border-top: 0.5px solid var(--border);
-    }
-
-    /* ── Clean state ── */
-    .clean-state {
-      background: var(--success-bg);
-      border-radius: var(--radius-lg);
-      padding: 2rem;
-      text-align: center;
-    }
-    .clean-state p { font-size: 15px; font-weight: 500; color: var(--success-text); }
-    .clean-state small { font-size: 13px; color: var(--success-text); opacity: 0.75; }
-  </style>
-</head>
-<body>
-  <div class="container">
-
-    <div class="header">
-      <h1>AI DevSec Scanner</h1>
-      <span class="header-badge">localhost:8000</span>
+      <div>
+        <div class="chat-panel">
+          <div class="chat-header">
+            <div class="chat-title">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                />
+              </svg>
+              Gemini AI Assistant
+              <span class="chat-badge">Powered by Gemini</span>
+            </div>
+            <div class="chat-sub">
+              Ask questions about your findings or request code fixes
+            </div>
+          </div>
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-empty" id="chat-empty">
+              <div class="chat-empty-icon">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#4c35b8"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 16v-4M12 8h.01" />
+                </svg>
+              </div>
+              <p>
+                Scan some code first.<br />The AI will analyse your findings<br />and
+                answer your questions.
+              </p>
+              <small>Powered by Google Gemini 1.5 Flash</small>
+            </div>
+          </div>
+          <div class="chat-typing" id="chat-typing">
+            <div class="typing-dots">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+          <div class="chat-footer">
+            <textarea
+              class="chat-input"
+              id="chat-input"
+              placeholder="Ask about a finding, request a fix… (Enter to send)"
+              rows="1"
+              oninput="autoResize(this)"
+            ></textarea>
+            <button
+              class="chat-send"
+              id="chat-send"
+              onclick="sendChat()"
+              title="Send"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                stroke-width="2.5"
+              >
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="card">
-      <div class="tabs">
-        <button class="tab active" onclick="switchTab('code')">Code scan</button>
-        <button class="tab" onclick="switchTab('diff')">Diff scan</button>
-      </div>
+    <script>
+      const API = "http://localhost:8000";
+      let lastFindings = [],
+        lastCode = "",
+        chatHistory = [],
+        chatReady = false;
 
-      <!-- Code scan panel -->
-      <div id="panel-code" class="panel active">
-        <label for="code-input">Code</label>
-        <textarea id="code-input" placeholder="Paste your code here…" spellcheck="false"></textarea>
-        <div class="form-footer">
-          <div class="field-sm">
-            <label for="filename-input">Filename (optional)</label>
-            <input type="text" id="filename-input" placeholder="e.g. app.py" />
-          </div>
-          <span class="hint">Cmd/Ctrl + Enter to scan</span>
-          <button class="btn-scan" onclick="runScan()">Scan code</button>
-        </div>
-      </div>
-
-      <!-- Diff scan panel -->
-      <div id="panel-diff" class="panel">
-        <label for="diff-input">Git diff</label>
-        <textarea id="diff-input" placeholder="Paste the output of git diff here…" spellcheck="false"></textarea>
-        <div class="form-footer">
-          <span class="hint">Cmd/Ctrl + Enter to scan</span>
-          <button class="btn-scan" onclick="runDiffScan()">Scan diff</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="status-bar" id="status-bar"></div>
-    <div id="error-box"></div>
-    <div id="results"></div>
-
-  </div>
-
-  <script>
-    const API = 'http://localhost:8000';
-
-    function switchTab(tab) {
-      document.querySelectorAll('.tab').forEach((t, i) =>
-        t.classList.toggle('active', (tab === 'code' ? 0 : 1) === i));
-      document.getElementById('panel-code').classList.toggle('active', tab === 'code');
-      document.getElementById('panel-diff').classList.toggle('active', tab === 'diff');
-      clearResults();
-    }
-
-    function clearResults() {
-      document.getElementById('results').innerHTML = '';
-      document.getElementById('status-bar').innerHTML = '';
-      document.getElementById('error-box').innerHTML = '';
-    }
-
-    function setStatus(msg, loading) {
-      document.getElementById('status-bar').innerHTML = loading
-        ? `<div class="spinner"></div><span>${msg}</span>`
-        : `<span>${msg}</span>`;
-    }
-
-    function showError(msg) {
-      document.getElementById('error-box').innerHTML =
-        `<div class="error-msg">${esc(msg)}</div>`;
-    }
-
-    function esc(s) {
-      return String(s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
-
-    function scoreClass(n) {
-      if (n === 0)   return 's-safe';
-      if (n <= 30)   return 's-low';
-      if (n <= 65)   return 's-med';
-      return 's-high';
-    }
-
-    function scoreVerdict(n) {
-      if (n === 0)   return 'No issues detected';
-      if (n <= 30)   return 'Low risk';
-      if (n <= 65)   return 'Medium risk';
-      if (n <= 85)   return 'High risk';
-      return 'Critical risk';
-    }
-
-    function renderResults(data) {
-      const findings = data.findings || [];
-      const score    = data.risk_score;
-      const cls      = scoreClass(score);
-      const counts   = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
-      findings.forEach(f => { if (f.severity in counts) counts[f.severity]++; });
-
-      let pillsHtml = '';
-      if (counts.CRITICAL) pillsHtml += `<span class="pill pill-crit">${counts.CRITICAL} critical</span>`;
-      if (counts.HIGH)     pillsHtml += `<span class="pill pill-high">${counts.HIGH} high</span>`;
-      if (counts.MEDIUM)   pillsHtml += `<span class="pill pill-med">${counts.MEDIUM} medium</span>`;
-      if (counts.LOW)      pillsHtml += `<span class="pill pill-low">${counts.LOW} low</span>`;
-
-      let findingsHtml = '';
-      if (findings.length === 0) {
-        findingsHtml = `
-          <div class="clean-state">
-            <p>No vulnerabilities detected</p>
-            <small>This code looks clean against all active detectors.</small>
-          </div>`;
-      } else {
-        findingsHtml += `<div class="findings-label">${findings.length} finding${findings.length !== 1 ? 's' : ''}</div>`;
-        findings.forEach(f => {
-          const loc = [f.file, f.line ? `line ${f.line}` : ''].filter(Boolean).join(' · ');
-          const conf = Math.round(f.confidence * 100);
-          findingsHtml += `
-            <div class="finding">
-              <div class="finding-top">
-                <span class="sev sev-${f.severity}">${f.severity}</span>
-                <span class="finding-msg">${esc(f.message)}</span>
-              </div>
-              <div class="finding-meta">
-                <span><span class="meta-k">detector </span>${esc(f.detector)}</span>
-                ${loc ? `<span><span class="meta-k">location </span>${esc(loc)}</span>` : ''}
-                <span><span class="meta-k">confidence </span>${conf}%</span>
-              </div>
-              ${f.evidence    ? `<div class="evidence">${esc(f.evidence)}</div>` : ''}
-              ${f.recommendation ? `<div class="rec">${esc(f.recommendation)}</div>` : ''}
-            </div>`;
-        });
+      function switchTab(t) {
+        document
+          .querySelectorAll(".tab")
+          .forEach((b, i) =>
+            b.classList.toggle("on", i === (t === "code" ? 0 : 1)),
+          );
+        document.getElementById("pcode").style.display =
+          t === "code" ? "block" : "none";
+        document.getElementById("pdiff").style.display =
+          t === "diff" ? "block" : "none";
+        clearResults();
+      }
+      function clearResults() {
+        document.getElementById("results").innerHTML = "";
+        document.getElementById("status").innerHTML = "";
+        document.getElementById("err-box").innerHTML = "";
+      }
+      function setStatus(msg, spin) {
+        document.getElementById("status").innerHTML = spin
+          ? `<div class="spinner"></div><span>${msg}</span>`
+          : `<span>${msg}</span>`;
+      }
+      function showErr(msg) {
+        document.getElementById("err-box").innerHTML =
+          `<div class="err">${esc(msg)}</div>`;
+      }
+      function esc(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+      function scCls(n) {
+        return n === 0 ? "safe" : n <= 30 ? "low" : n <= 65 ? "med" : "high";
+      }
+      function verdict(n) {
+        return n === 0
+          ? "No issues detected"
+          : n <= 30
+            ? "Low risk"
+            : n <= 65
+              ? "Medium risk"
+              : n <= 85
+                ? "High risk"
+                : "Critical risk";
       }
 
-      document.getElementById('results').innerHTML = `
-        <div class="score-card">
-          <div class="score-num ${cls}">${score}</div>
-          <div>
-            <div class="score-label">Risk score / 100</div>
-            <div class="bar-track">
-              <div class="bar-fill ${cls}" style="width: ${score}%"></div>
-            </div>
-            <div class="score-verdict">${scoreVerdict(score)}</div>
-            <div class="pills">
-              ${pillsHtml || `<span style="font-size:13px;color:var(--success-text)">All clear</span>`}
-            </div>
-          </div>
-        </div>
-        ${findingsHtml}`;
-    }
+      async function runScan() {
+        const code = document.getElementById("code-input").value;
+        const fn = document.getElementById("fn-input").value.trim();
+        if (!code.trim()) {
+          showErr("Please paste some code first.");
+          return;
+        }
+        clearResults();
+        setStatus("Scanning…", true);
+        setBtns(true);
+        try {
+          const url = fn
+            ? `${API}/api/ai-devsec/scan?filename=${encodeURIComponent(fn)}`
+            : `${API}/api/ai-devsec/scan`;
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain" },
+            body: code,
+          });
+          if (!res.ok)
+            throw new Error(`API error ${res.status}: ${await res.text()}`);
+          const data = await res.json();
+          setStatus(
+            `Scan complete · ${data.findings.length} finding${data.findings.length !== 1 ? "s" : ""} · ${new Date().toLocaleTimeString()}`,
+            false,
+          );
+          renderResults(data);
+          initChat(data.findings, code);
+        } catch (e) {
+          setStatus("", false);
+          showErr(
+            e.message.includes("fetch")
+              ? "Could not reach the API. Make sure the server is running on localhost:8000."
+              : e.message,
+          );
+        } finally {
+          setBtns(false);
+        }
+      }
 
-    async function runScan() {
-      const code     = document.getElementById('code-input').value;
-      const filename = document.getElementById('filename-input').value.trim();
-      if (!code.trim()) { showError('Please paste some code before scanning.'); return; }
-      clearResults();
-      setStatus('Scanning…', true);
-      setBtns(true);
-      try {
-        const url = filename
-          ? `${API}/api/ai-devsec/scan?filename=${encodeURIComponent(filename)}`
-          : `${API}/api/ai-devsec/scan`;
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: code
+      async function runDiffScan() {
+        const diff = document.getElementById("diff-input").value;
+        if (!diff.trim()) {
+          showErr("Please paste a git diff first.");
+          return;
+        }
+        clearResults();
+        setStatus("Scanning diff…", true);
+        setBtns(true);
+        try {
+          const res = await fetch(`${API}/api/ai-devsec/scan-diff`, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain" },
+            body: diff,
+          });
+          if (!res.ok)
+            throw new Error(`API error ${res.status}: ${await res.text()}`);
+          const data = await res.json();
+          setStatus(
+            `Diff scan complete · ${data.findings.length} finding${data.findings.length !== 1 ? "s" : ""} · ${new Date().toLocaleTimeString()}`,
+            false,
+          );
+          renderResults(data);
+          initChat(data.findings, diff);
+        } catch (e) {
+          setStatus("", false);
+          showErr(
+            e.message.includes("fetch")
+              ? "Could not reach the API. Make sure the server is running on localhost:8000."
+              : e.message,
+          );
+        } finally {
+          setBtns(false);
+        }
+      }
+
+      function setBtns(d) {
+        document.querySelectorAll(".btn-scan").forEach((b) => (b.disabled = d));
+      }
+
+      function renderResults(data) {
+        const findings = data.findings || [];
+        const score = data.risk_score;
+        const cls = scCls(score);
+        const counts = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+        findings.forEach((f) => {
+          if (f.severity in counts) counts[f.severity]++;
         });
-        if (!res.ok) throw new Error(`API error ${res.status}: ${await res.text()}`);
-        const data = await res.json();
-        setStatus(`Scan complete · ${data.findings.length} finding${data.findings.length !== 1 ? 's' : ''} · ${new Date().toLocaleTimeString()}`, false);
-        renderResults(data);
-      } catch (e) {
-        setStatus('', false);
-        showError(e.message.includes('fetch')
-          ? 'Could not reach the API. Make sure the server is running on localhost:8000.'
-          : e.message);
-      } finally { setBtns(false); }
-    }
+        let pills = "";
+        if (counts.CRITICAL)
+          pills += `<span class="pill p-crit">${counts.CRITICAL} critical</span>`;
+        if (counts.HIGH)
+          pills += `<span class="pill p-high">${counts.HIGH} high</span>`;
+        if (counts.MEDIUM)
+          pills += `<span class="pill p-med">${counts.MEDIUM} medium</span>`;
+        if (counts.LOW)
+          pills += `<span class="pill p-low">${counts.LOW} low</span>`;
+        let fhtml = "";
+        if (!findings.length) {
+          fhtml = `<div class="clean"><p>No vulnerabilities detected</p></div>`;
+        } else {
+          fhtml += `<div class="findings-lbl">${findings.length} finding${findings.length !== 1 ? "s" : ""}</div>`;
+          findings.forEach((f) => {
+            const loc = [f.file, f.line ? `line ${f.line}` : ""]
+              .filter(Boolean)
+              .join(" · ");
+            fhtml += `<div class="finding"><div class="finding-top"><span class="sev sev-${f.severity}">${f.severity}</span><span class="finding-msg">${esc(f.message)}</span></div>
+      <div class="finding-meta"><span><span class="mk">detector </span>${esc(f.detector)}</span>${loc ? `<span><span class="mk">location </span>${esc(loc)}</span>` : ""}<span><span class="mk">confidence </span>${Math.round(f.confidence * 100)}%</span></div>
+      ${f.evidence ? `<div class="evidence">${esc(f.evidence)}</div>` : ""}${f.recommendation ? `<div class="rec">${esc(f.recommendation)}</div>` : ""}</div>`;
+          });
+        }
+        document.getElementById("results").innerHTML =
+          `<div class="score-card"><div class="score-num s-${cls}">${score}</div><div>
+    <div class="score-lbl">Risk score / 100</div><div class="bar-t"><div class="bar-f bar-${cls}" style="width:${score}%"></div></div>
+    <div class="verdict">${verdict(score)}</div><div class="pills">${pills || `<span style="font-size:13px;color:var(--ok)">All clear</span>`}</div></div></div>${fhtml}`;
+      }
 
-    async function runDiffScan() {
-      const diff = document.getElementById('diff-input').value;
-      if (!diff.trim()) { showError('Please paste a git diff before scanning.'); return; }
-      clearResults();
-      setStatus('Scanning diff…', true);
-      setBtns(true);
-      try {
-        const res = await fetch(`${API}/api/ai-devsec/scan-diff`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: diff
+      function initChat(findings, code) {
+        lastFindings = findings;
+        lastCode = code;
+        chatHistory = [];
+        chatReady = true;
+        const msgs = document.getElementById("chat-messages");
+        document.getElementById("chat-empty").style.display = "none";
+        document.querySelectorAll(".msg-init").forEach((el) => el.remove());
+        const count = findings.length;
+        let welcome;
+        if (count === 0) {
+          welcome =
+            "Great news — no vulnerabilities were detected in your code! Everything looks clean.\n\nFeel free to ask me anything about secure coding practices.";
+        } else {
+          const top = findings.reduce(
+            (a, b) =>
+              ({ CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 })[b.severity] >
+              { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 }[a.severity]
+                ? b
+                : a,
+            findings[0],
+          );
+          welcome = `I've reviewed your scan results. I found **${count} issue${count !== 1 ? "s" : ""}** in your code.\n\nThe most serious is a **${top.severity}** finding from the \`${top.detector}\` detector on line ${top.line || "?"}: ${top.message}\n\nWhat would you like to know?`;
+        }
+        chatHistory.push({
+          role: "model",
+          text: welcome.replace(/\*\*/g, "").replace(/`/g, ""),
         });
-        if (!res.ok) throw new Error(`API error ${res.status}: ${await res.text()}`);
-        const data = await res.json();
-        setStatus(`Diff scan complete · ${data.findings.length} finding${data.findings.length !== 1 ? 's' : ''} · ${new Date().toLocaleTimeString()}`, false);
-        renderResults(data);
-      } catch (e) {
-        setStatus('', false);
-        showError(e.message.includes('fetch')
-          ? 'Could not reach the API. Make sure the server is running on localhost:8000.'
-          : e.message);
-      } finally { setBtns(false); }
-    }
+        appendMsg("model", welcome, true);
+        if (count > 0) {
+          const wrap = document.createElement("div");
+          wrap.className = "msg msg-model msg-init";
+          wrap.innerHTML = `<div style="max-width:280px">${findings
+            .slice(0, 3)
+            .map(
+              (f) =>
+                `<button class="quick-btn" onclick="quickAsk('Explain the ${esc(f.detector)} vulnerability and show me exactly how to fix line ${f.line || 1}')">"Fix ${esc(f.detector)} on line ${f.line || "?"}"</button>`,
+            )
+            .join(
+              "",
+            )}<button class="quick-btn" onclick="quickAsk('Show me the complete corrected version of my code with all vulnerabilities fixed')">Show me fully fixed code</button></div>`;
+          msgs.appendChild(wrap);
+        }
+        msgs.scrollTop = msgs.scrollHeight;
+        document.getElementById("chat-input").focus();
+      }
 
-    function setBtns(disabled) {
-      document.querySelectorAll('.btn-scan').forEach(b => b.disabled = disabled);
-    }
+      async function sendChat() {
+        if (!chatReady) {
+          appendMsg("model", "Please scan some code first.");
+          return;
+        }
+        const input = document.getElementById("chat-input");
+        const msg = input.value.trim();
+        if (!msg) return;
+        input.value = "";
+        input.style.height = "";
+        appendMsg("user", msg);
+        chatHistory.push({ role: "user", text: msg });
+        showTyping(true);
+        document.getElementById("chat-send").disabled = true;
+        try {
+          const res = await fetch(`${API}/api/ai-devsec/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              findings: lastFindings,
+              scanned_code: lastCode,
+              message: msg,
+              history: chatHistory.slice(0, -1),
+            }),
+          });
+          if (!res.ok) {
+            const err = await res
+              .json()
+              .catch(() => ({ detail: res.statusText }));
+            throw new Error(err.detail || `API error ${res.status}`);
+          }
+          const data = await res.json();
+          chatHistory.push({ role: "model", text: data.reply });
+          showTyping(false);
+          appendMsg("model", data.reply, true);
+        } catch (e) {
+          showTyping(false);
+          appendMsg("model", `Error: ${e.message}`);
+        } finally {
+          document.getElementById("chat-send").disabled = false;
+        }
+      }
 
-    document.getElementById('code-input').addEventListener('keydown', e => {
-      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) runScan();
-    });
-    document.getElementById('diff-input').addEventListener('keydown', e => {
-      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) runDiffScan();
-    });
-  </script>
-</body>
+      function quickAsk(text) {
+        document.getElementById("chat-input").value = text;
+        sendChat();
+      }
+
+      function appendMsg(role, text, isMd = false) {
+        const msgs = document.getElementById("chat-messages");
+        document.getElementById("chat-typing").style.display = "none";
+        const wrap = document.createElement("div");
+        wrap.className = `msg msg-${role} msg-init`;
+        const bubble = document.createElement("div");
+        bubble.className = "msg-bubble";
+        if (isMd && role === "model") {
+          bubble.innerHTML = renderMd(text);
+        } else {
+          bubble.textContent = text;
+        }
+        const time = document.createElement("div");
+        time.className = "msg-time";
+        time.textContent = new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        wrap.appendChild(bubble);
+        wrap.appendChild(time);
+        msgs.appendChild(wrap);
+        msgs.scrollTop = msgs.scrollHeight;
+      }
+
+      function showTyping(show) {
+        const t = document.getElementById("chat-typing");
+        t.style.display = show ? "block" : "none";
+        if (show) document.getElementById("chat-messages").scrollTop = 9999;
+      }
+
+      function renderMd(text) {
+        let h = esc(text);
+        h = h.replace(
+          /```(\w*)\n?([\s\S]*?)```/g,
+          (_, l, c) => `<pre>${c.trim()}</pre>`,
+        );
+        h = h.replace(/`([^`]+)`/g, "<code>$1</code>");
+        h = h.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+        h = h.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+        h = h.replace(/^[•\-] (.+)$/gm, "&bull; $1");
+        h = h.replace(/\n/g, "<br>");
+        return h;
+      }
+
+      function autoResize(el) {
+        el.style.height = "";
+        el.style.height = Math.min(el.scrollHeight, 120) + "px";
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        document
+          .getElementById("code-input")
+          .addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runScan();
+          });
+        document
+          .getElementById("diff-input")
+          .addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runDiffScan();
+          });
+        document
+          .getElementById("chat-input")
+          .addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendChat();
+            }
+          });
+      });
+    </script>
+  </body>
 </html>

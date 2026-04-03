@@ -62,3 +62,33 @@ async def scan_diff(
     if not diff or not diff.strip():
         raise HTTPException(status_code=422, detail="Request body must not be empty.")
     return run_diff_scan(diff)
+
+# ── Gemini chat endpoint ───────────────────────────────────────────────────────
+
+from .schemas import ChatRequest, ChatResponse
+from .gemini import chat_with_gemini
+
+
+@router.post("/chat", response_model=ChatResponse, tags=["ai-chat"])
+async def chat(req: ChatRequest):
+    """
+    Send a message to the Gemini AI assistant.
+    The assistant already knows what was found in the last scan
+    and can answer follow-up questions about the code.
+
+    Send JSON with:
+    - findings: the findings array from a previous /scan response
+    - scanned_code: the code that was scanned
+    - message: the user's question
+    - history: previous turns (optional, for multi-turn conversation)
+    """
+    try:
+        reply = await chat_with_gemini(
+            findings=req.findings,
+            scanned_code=req.scanned_code,
+            message=req.message,
+            history=req.history,
+        )
+        return ChatResponse(reply=reply)
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e))

@@ -26,3 +26,19 @@ class ScanResponse(BaseModel):
 class DiffScanRequest(BaseModel):
     diff: str = Field(min_length=1)
 
+
+
+# ── Gemini chat ────────────────────────────────────────────────────────────────
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "model"]
+    text: str
+
+class ChatRequest(BaseModel):
+    findings: List[Finding]
+    scanned_code: str
+    message: str = Field(min_length=1)
+    history: List[ChatMessage] = []
+
+class ChatResponse(BaseModel):
+    reply: str
