@@ -653,7 +653,7 @@
         <div class="header">
           <h1>AI DevSec Scanner</h1>
           <p>
-            Paste code to scan for vulnerabilities, then chat with Gemini AI
+            Paste code to scan for vulnerabilities, then chat with Claude AI
             about the results
           </p>
         </div>
@@ -720,8 +720,8 @@
                   d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
                 />
               </svg>
-              Gemini AI Assistant
-              <span class="chat-badge">Powered by Gemini</span>
+              Claude AI Assistant
+              <span class="chat-badge">Powered by Claude</span>
             </div>
             <div class="chat-sub">
               Ask questions about your findings or request code fixes
@@ -746,7 +746,7 @@
                 Scan some code first.<br />The AI will analyse your findings<br />and
                 answer your questions.
               </p>
-              <small>Powered by Google Gemini 1.5 Flash</small>
+              <small>Powered by Anthropic Claude</small>
             </div>
           </div>
           <div class="chat-typing" id="chat-typing">
@@ -981,7 +981,7 @@
           welcome = `I've reviewed your scan results. I found **${count} issue${count !== 1 ? "s" : ""}** in your code.\n\nThe most serious is a **${top.severity}** finding from the \`${top.detector}\` detector on line ${top.line || "?"}: ${top.message}\n\nWhat would you like to know?`;
         }
         chatHistory.push({
-          role: "model",
+          role: "assistant",
           text: welcome.replace(/\*\*/g, "").replace(/`/g, ""),
         });
         appendMsg("model", welcome, true);
@@ -1035,7 +1035,7 @@
             throw new Error(err.detail || `API error ${res.status}`);
           }
           const data = await res.json();
-          chatHistory.push({ role: "model", text: data.reply });
+          chatHistory.push({ role: "assistant", text: data.reply });
           showTyping(false);
           appendMsg("model", data.reply, true);
         } catch (e) {
@@ -1058,7 +1058,7 @@
         wrap.className = `msg msg-${role} msg-init`;
         const bubble = document.createElement("div");
         bubble.className = "msg-bubble";
-        if (isMd && role === "model") {
+        if (isMd && role === "assistant") {
           bubble.innerHTML = renderMd(text);
         } else {
           bubble.textContent = text;

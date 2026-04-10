@@ -1,6 +1,5 @@
 from dotenv import load_dotenv
-
-load_dotenv()  # loads GEMINI_API_KEY from .env before anything else imports it
+load_dotenv()  # loads ANTHROPIC_API_KEY from .env before anything else imports it
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

@@ -100,7 +100,7 @@ class DiffScanRequest(BaseModel):
 
 class ChatMessage(BaseModel):
     """A single turn in a conversation (user or model)."""
-    role: Literal["user", "model"]
+    role: Literal["user", "assistant"]
     text: str
 
 

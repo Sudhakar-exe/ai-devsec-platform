@@ -3,7 +3,7 @@ from typing import Optional, Annotated
 
 from .findings import ScanRequest, ScanResponse, ChatRequest, ChatResponse
 from .service import run_scan, run_diff_scan
-from .gemini import chat_with_gemini
+from .claude import chat_with_claude
 
 
 router = APIRouter(prefix="/api/ai-devsec", tags=["ai-devsec"])
@@ -47,11 +47,11 @@ async def scan_diff(
 @router.post("/chat", response_model=ChatResponse, tags=["ai-chat"])
 async def chat(req: ChatRequest):
     """
-    Send a message to the Gemini AI assistant.
+    Send a message to the Claude AI assistant.
     The assistant already knows what was found in the last scan.
     """
     try:
-        reply = await chat_with_gemini(
+        reply = await chat_with_claude(
             findings=req.findings,
             scanned_code=req.scanned_code,
             message=req.message,
