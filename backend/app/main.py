@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+
 load_dotenv()  # loads GEMINI_API_KEY from .env before anything else imports it
 
 from fastapi import FastAPI

@@ -10,7 +10,7 @@ import os
 import httpx
 from typing import List
 
-from .schemas import Finding, ChatMessage
+from .findings import Finding, ChatMessage
 
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")

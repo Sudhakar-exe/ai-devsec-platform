@@ -1,4 +1,4 @@
-from backend.app.ai_devsec.schemas import ScanRequest
+from backend.app.ai_devsec.findings import ScanRequest
 from backend.app.ai_devsec.service import run_scan, run_diff_scan
 
 

@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Query, HTTPException, Body
 from typing import Optional, Annotated
-from .schemas import ScanRequest, ScanResponse
+
+from .findings import ScanRequest, ScanResponse, ChatRequest, ChatResponse
 from .service import run_scan, run_diff_scan
+from .gemini import chat_with_gemini
 
 
 router = APIRouter(prefix="/api/ai-devsec", tags=["ai-devsec"])
@@ -19,19 +21,7 @@ async def scan(
     ],
     filename: Optional[str] = Query(None, description="Optional filename for context (e.g. app.py)"),
 ):
-    """
-    Scan a code snippet for security vulnerabilities.
-
-    Paste your code directly into the **Request body** box above.
-    Optionally pass `?filename=yourfile.py` in the URL for richer findings.
-
-    **curl example:**
-    ```
-    curl -X POST http://localhost:8000/api/ai-devsec/scan \\
-         -H "Content-Type: text/plain" \\
-         --data-binary @yourfile.py
-    ```
-    """
+    """Scan a code snippet for security vulnerabilities."""
     if not code or not code.strip():
         raise HTTPException(status_code=422, detail="Request body must not be empty.")
     return run_scan(ScanRequest(code=code, filename=filename))
@@ -48,39 +38,17 @@ async def scan_diff(
         ),
     ],
 ):
-    """
-    Scan only the **added lines** from a git diff for security vulnerabilities.
-
-    Paste the raw output of `git diff` into the **Request body** box above.
-
-    **curl example (pipe git diff directly):**
-    ```
-    git diff HEAD | curl -X POST http://localhost:8000/api/ai-devsec/scan-diff \\
-         -H "Content-Type: text/plain" --data-binary @-
-    ```
-    """
+    """Scan only the added lines from a git diff for security vulnerabilities."""
     if not diff or not diff.strip():
         raise HTTPException(status_code=422, detail="Request body must not be empty.")
     return run_diff_scan(diff)
-
-# ── Gemini chat endpoint ───────────────────────────────────────────────────────
-
-from .schemas import ChatRequest, ChatResponse
-from .gemini import chat_with_gemini
 
 
 @router.post("/chat", response_model=ChatResponse, tags=["ai-chat"])
 async def chat(req: ChatRequest):
     """
     Send a message to the Gemini AI assistant.
-    The assistant already knows what was found in the last scan
-    and can answer follow-up questions about the code.
-
-    Send JSON with:
-    - findings: the findings array from a previous /scan response
-    - scanned_code: the code that was scanned
-    - message: the user's question
-    - history: previous turns (optional, for multi-turn conversation)
+    The assistant already knows what was found in the last scan.
     """
     try:
         reply = await chat_with_gemini(
