@@ -1,8 +1,5 @@
 """
-detectors.py  —  All 10 security detectors in one file.
-
-Each detector inherits from Detector, defines its PATTERNS, and implements run().
-To add a new detector: write the class, add an instance to DETECTORS at the bottom.
+All 10 security detectors in one file.
 """
 
 import re
@@ -12,9 +9,7 @@ from typing import List
 from .findings import Finding, truncate_line, mask_sensitive
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # Base class
-# ──────────────────────────────────────────────────────────────────────────────
 
 class Detector(ABC):
     name: str
@@ -24,9 +19,7 @@ class Detector(ABC):
         raise NotImplementedError
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # 1. Secrets
-# ──────────────────────────────────────────────────────────────────────────────
 
 _SECRETS_PATTERNS = [
     ("AWS Access Key",
@@ -56,10 +49,7 @@ class SecretsDetector(Detector):
                     ))
         return findings
 
-
-# ──────────────────────────────────────────────────────────────────────────────
 # 2. Dangerous execution
-# ──────────────────────────────────────────────────────────────────────────────
 
 _EXEC_PATTERNS = [
     ("eval()",                      re.compile(r"\beval\s*\(")),
@@ -87,9 +77,7 @@ class DangerousExecDetector(Detector):
         return findings
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # 3. Hardcoded credentials
-# ──────────────────────────────────────────────────────────────────────────────
 
 _CREDS_KV = [
     ("Hardcoded password",
@@ -133,10 +121,7 @@ class HardcodedCredsDetector(Detector):
                 ))
         return findings
 
-
-# ──────────────────────────────────────────────────────────────────────────────
 # 4. Insecure HTTP
-# ──────────────────────────────────────────────────────────────────────────────
 
 _HTTP_RX    = re.compile(r"http://", re.IGNORECASE)
 _SAFE_HOSTS = re.compile(
@@ -161,9 +146,7 @@ class InsecureHTTPDetector(Detector):
         return findings
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # 5. Download and execute
-# ──────────────────────────────────────────────────────────────────────────────
 
 _DLEXEC_PATTERNS = [
     ("curl pipe to bash/sh",    re.compile(r"\bcurl\b.*\|\s*(bash|sh)\b",          re.IGNORECASE)),
@@ -192,11 +175,7 @@ class DownloadExecDetector(Detector):
         return findings
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # 6. SQL injection
-# Note: quote characters in the patterns use a character class [quote_chars]
-# where quote_chars is built at module load to avoid Python string conflicts.
-# ──────────────────────────────────────────────────────────────────────────────
 
 _Q = r"""['"]{1}"""   # matches either " or '
 
@@ -234,13 +213,11 @@ class SQLInjectionDetector(Detector):
                             "Use parameterized queries: cursor.execute('SELECT ... WHERE id = %s', (user_id,))."
                         ),
                     ))
-                    break  # one finding per line is enough
+                    break  
         return findings
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # 7. Insecure deserialization
-# ──────────────────────────────────────────────────────────────────────────────
 
 _DESER_PATTERNS = [
     ("pickle.loads()", "CRITICAL", 0.9,
@@ -279,9 +256,7 @@ class InsecureDeserializationDetector(Detector):
         return findings
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # 8. Path traversal
-# ──────────────────────────────────────────────────────────────────────────────
 
 _PT_USER_INPUT = re.compile(
     r"\b(request\.(args|form|json|data|files|params|get|values|POST|GET)"
@@ -340,9 +315,7 @@ class PathTraversalDetector(Detector):
         return findings
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # 9. Weak cryptography
-# ──────────────────────────────────────────────────────────────────────────────
 
 _CRYPTO_PATTERNS = [
     ("MD5 used for security", "HIGH", 0.8,
@@ -397,9 +370,7 @@ class WeakCryptographyDetector(Detector):
         return findings
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # 10. Debug and misconfiguration
-# ──────────────────────────────────────────────────────────────────────────────
 
 _MISCONFIG_PATTERNS = [
     ("Flask DEBUG=True", "HIGH", 0.9,
@@ -454,9 +425,7 @@ class DebugMisconfigDetector(Detector):
         return findings
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # Master list — imported by service.py
-# ──────────────────────────────────────────────────────────────────────────────
 
 DETECTORS: List[Detector] = [
     SecretsDetector(),

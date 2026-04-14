@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 
 const API = '/api/ai-devsec'
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
 const T = {
   bg:       '#111214',   // page background
   surface:  '#1c1d20',   // panels
@@ -40,7 +39,7 @@ function scoreLabel(n) {
   return 'Critical risk'
 }
 
-// ─── Animated counter ─────────────────────────────────────────────────────────
+
 function useCountUp(target, ms = 650) {
   const [v, setV] = useState(0)
   useEffect(() => {
@@ -56,7 +55,7 @@ function useCountUp(target, ms = 650) {
   return v
 }
 
-// ─── Severity badge ───────────────────────────────────────────────────────────
+
 function SevBadge({ sev }) {
   const s = SEV[sev] || SEV.LOW
   return (
@@ -73,7 +72,6 @@ function SevBadge({ sev }) {
   )
 }
 
-// ─── Spinner ──────────────────────────────────────────────────────────────────
 function Spin({ size = 14 }) {
   return (
     <span style={{
@@ -84,7 +82,6 @@ function Spin({ size = 14 }) {
   )
 }
 
-// ─── Finding card ─────────────────────────────────────────────────────────────
 function FindingCard({ f, idx }) {
   const [open, setOpen] = useState(idx < 2)
   const s = SEV[f.severity] || SEV.LOW
@@ -156,7 +153,6 @@ function FindingCard({ f, idx }) {
   )
 }
 
-// ─── Risk score ───────────────────────────────────────────────────────────────
 function RiskScore({ score, findings }) {
   const n = useCountUp(score)
   const color = scoreColor(score)
@@ -204,7 +200,6 @@ function RiskScore({ score, findings }) {
   )
 }
 
-// ─── Markdown renderer ────────────────────────────────────────────────────────
 function Md({ text }) {
   const parts = text.split(/(```[\s\S]*?```|`[^`]+`|\*\*[^*]+\*\*)/g)
   return (
@@ -232,7 +227,6 @@ function Md({ text }) {
   )
 }
 
-// ─── Chat message ─────────────────────────────────────────────────────────────
 function Msg({ role, text, time }) {
   const me = role === 'user'
   return (
@@ -273,7 +267,6 @@ function Typing() {
   )
 }
 
-// ─── Quick actions ────────────────────────────────────────────────────────────
 function QuickActions({ findings, onSend }) {
   if (!findings.length) return null
   const actions = [
@@ -301,7 +294,6 @@ function QuickActions({ findings, onSend }) {
   )
 }
 
-// ─── Scan button ──────────────────────────────────────────────────────────────
 function ScanBtn({ scanning, onClick }) {
   const [hover, setHover] = useState(false)
   return (
@@ -329,7 +321,6 @@ function ScanBtn({ scanning, onClick }) {
   )
 }
 
-// ─── Tab ─────────────────────────────────────────────────────────────────────
 function Tab({ label, active, onClick }) {
   return (
     <button onClick={onClick} style={{
@@ -345,7 +336,6 @@ function Tab({ label, active, onClick }) {
   )
 }
 
-// ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab]         = useState('code')
   const [code, setCode]       = useState('')
@@ -379,7 +369,6 @@ export default function App() {
 
   const ts = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-  // ── Scan ────────────────────────────────────────────────────────────────────
   async function scan() {
     const body = tab === 'code' ? code : diff
     if (!body.trim()) return
@@ -412,7 +401,6 @@ export default function App() {
     setMsgs([{ role: 'assistant', text, time: ts() }])
   }
 
-  // ── Chat ────────────────────────────────────────────────────────────────────
   async function send(msg) {
     const text = (msg || chatIn).trim()
     if (!text || !chatReady) return
@@ -436,7 +424,6 @@ export default function App() {
     } finally { setTyping(false) }
   }
 
-  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: T.bg, fontFamily: T.sans }}>
 

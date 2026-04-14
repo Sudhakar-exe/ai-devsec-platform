@@ -1,6 +1,4 @@
 """
-claude.py
----------
 Claude AI chat service.
 
 Sends scan findings + conversation history to the Anthropic Claude API

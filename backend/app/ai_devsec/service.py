@@ -1,8 +1,6 @@
 """
-service.py
-----------
 Core scan logic. Imports the detector list from detectors.py and the
-data models from findings.py. Does not know about HTTP — that's router.py's job.
+data models from findings.py.
 """
 
 from typing import List
@@ -21,7 +19,6 @@ def compute_risk_score(findings: List[Finding]) -> int:
 
 
 def run_scan(req: ScanRequest) -> ScanResponse:
-    """Run all detectors against a code snippet and return a ScanResponse."""
     findings: List[Finding] = []
     for detector in DETECTORS:
         findings.extend(detector.run(req.code))
@@ -38,10 +35,6 @@ def run_scan(req: ScanRequest) -> ScanResponse:
 
 
 def extract_added_lines(diff_text: str) -> list:
-    """
-    Parse a git diff and return only added lines with metadata.
-    Each item: {"file": str, "line": int, "code": str}
-    """
     current_file = None
     new_line_number = 0
     extracted = []

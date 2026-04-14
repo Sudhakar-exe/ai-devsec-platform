@@ -1,12 +1,6 @@
 """
-findings.py
------------
 All data models (schemas) used across the project, plus the shared
 helper functions that sanitise evidence before it appears in a Finding.
-
-Having everything in one place means:
-  - You only look in one file to understand the shape of any piece of data.
-  - The truncate_line / mask_sensitive helpers are never duplicated.
 """
 
 import re
@@ -14,12 +8,12 @@ from typing import List, Optional, Literal
 from pydantic import BaseModel, Field
 
 
-# ── Severity type ──────────────────────────────────────────────────────────────
+# Severity type 
 
 Severity = Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
 
 
-# ── Evidence helpers ───────────────────────────────────────────────────────────
+# Evidence helpers
 
 def truncate_line(line: str, max_len: int = 180) -> str:
     """Trim a line of evidence so it never bloats a Finding."""
@@ -28,16 +22,6 @@ def truncate_line(line: str, max_len: int = 180) -> str:
 
 
 def mask_sensitive(text: str) -> str:
-    """
-    Replace the *value* of common credential patterns with *** so that
-    real secrets never appear in scan reports.
-
-    Examples
-    --------
-    password="admin123"          →  password="***"
-    Authorization: Bearer abc123 →  Authorization: Bearer ***
-    postgresql://user:pass@host  →  postgresql://***:***@host
-    """
     s = text.strip()
 
     # key/value credentials: password="x", secret='x', token = "x"
@@ -63,7 +47,7 @@ def mask_sensitive(text: str) -> str:
     return s[:180] + ("…" if len(s) > 180 else "")
 
 
-# ── Scan models ────────────────────────────────────────────────────────────────
+# Scan models
 
 class Finding(BaseModel):
     """A single security issue discovered by one detector."""
@@ -96,23 +80,15 @@ class DiffScanRequest(BaseModel):
     diff: str = Field(min_length=1)
 
 
-# ── Gemini chat models ─────────────────────────────────────────────────────────
+# chat models
 
 class ChatMessage(BaseModel):
-    """A single turn in a conversation (user or model)."""
     role: Literal["user", "assistant"]
     text: str
 
 
 class ChatRequest(BaseModel):
-    """
-    Payload sent to the /chat endpoint.
-
-    findings      – results from the most recent scan (used as AI context)
-    scanned_code  – the code that was scanned
-    message       – the user's current question
-    history       – previous turns in the conversation
-    """
+  
     findings:     List[Finding]
     scanned_code: str
     message:      str           = Field(min_length=1)
@@ -120,5 +96,4 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    """Response returned by the /chat endpoint."""
     reply: str
